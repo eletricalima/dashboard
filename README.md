@@ -1,32 +1,72 @@
-# Dashboard Comercial 3.0 — Elétrica Lima
+# Dashboard Comercial 5.0 — Elétrica Lima
 
-Versão atualizada conforme o layout aprovado, com identidade visual da Elétrica Lima.
+Dashboard em HTML, CSS e JavaScript puro, publicado pelo GitHub Pages e alimentado pelo Google Sheets via Apps Script.
 
-## Arquivos
+## Recursos
 
-- `index.html`: página principal;
-- `css/style.css`: layout responsivo;
-- `js/app.js`: filtros, indicadores, gráficos e importação de Excel;
-- `js/data.js`: dados iniciais;
+- sincronização ao abrir e a cada 30 minutos;
+- botão **Atualizar agora**;
+- cache local e dados de contingência;
+- conexão, fonte ativa e última atualização visíveis;
+- alerta para dados com mais de 24 horas;
+- metas geral e individuais;
+- comparação com o mês anterior;
+- ranking, funil, gráficos e insights automáticos;
+- importação de Excel, CSV e impressão/PDF;
+- temas claro/escuro, responsividade e logomarca oficial.
+
+## Estrutura
+
+- `index.html`: interface;
+- `css/style.css`: identidade visual e responsividade;
+- `js/config.js`: URL e parâmetros de sincronização;
+- `js/api.js`: comunicação, normalização e cache;
+- `js/app.js`: indicadores, filtros, gráficos e exportações;
+- `js/data.js`: contingência local;
 - `assets/logo.png`: logomarca;
-- `dados/Pasta1_com_metas_dashboard.xlsx`: planilha modelo com metas.
+- `dados/`: planilha modelo.
 
-## Planilha
+## Resposta esperada do Apps Script
 
-A planilha possui duas novas abas:
+```json
+{
+  "sucesso": true,
+  "atualizadoEm": "2026-07-31T12:00:00.000Z",
+  "vendas": [
+    {
+      "mes": "JULHO",
+      "vendedor": "Alexandre",
+      "orcamentos": 167,
+      "vendas": 201,
+      "faturamento": 652017.23
+    }
+  ],
+  "metas": [
+    {
+      "mes": "JULHO",
+      "metaLoja": 1550000,
+      "vendedores": { "Alexandre": 600000 }
+    }
+  ]
+}
+```
 
-- **METAS**: meta geral da loja e meta individual por vendedor/mês;
-- **DADOS DASHBOARD**: formato normalizado utilizado pelo importador.
+As metas também podem vir em cada venda como `metaIndividual` e `metaGeral`.
 
-Edite as metas diretamente na aba **METAS**. Para garantir a leitura automática, atualize também a aba **DADOS DASHBOARD**, ou mantenha a estrutura existente para que o dashboard faça a leitura combinada.
+## Uso e diagnóstico
 
-## Uso
+1. Acesse o GitHub Pages.
+2. Aguarde o indicador ficar verde.
+3. Use os filtros ou **Atualizar agora**.
+4. Verde significa dados online; laranja, cache/importação; vermelho, contingência local.
+5. Se a carga válida tiver mais de 24 horas, o painel exibe um alerta.
 
-1. Extraia o ZIP.
-2. Abra `index.html` no Chrome ou Edge.
-3. Clique em **Importar Excel** para carregar a planilha atualizada.
-4. Use **Imprimir** para salvar o painel em PDF.
+Para desenvolvimento local, sirva a pasta por HTTP. Abrir `index.html` diretamente pode limitar requisições externas em alguns navegadores.
 
 ## GitHub Pages
 
-Publique os arquivos na raiz do repositório e ative: `Settings → Pages → Deploy from a branch → main → / (root)`.
+Configure `Settings → Pages → Deploy from a branch → main → / (root)`.
+
+## Segurança
+
+O Apps Script deve ser somente leitura. Não exponha credenciais ou dados sensíveis no JSON.
