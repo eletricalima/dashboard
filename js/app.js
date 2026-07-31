@@ -1,33 +1,224 @@
 'use strict';
-let rawData=[...window.INITIAL_DATA],charts={};
-const monthsOrder=['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
-const $=id=>document.getElementById(id);
-const brl=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2});
-const num=n=>Number(n||0).toLocaleString('pt-BR');
-const pct=n=>(Number(n||0)*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
-const css=v=>getComputedStyle(document.body).getPropertyValue(v).trim();
-function orderedMonths(rows=rawData){return [...new Set(rows.map(x=>x.mes))].sort((a,b)=>monthsOrder.indexOf(a)-monthsOrder.indexOf(b));}
-function fillFilters(){const m=orderedMonths(),s=[...new Set(rawData.map(x=>x.vendedor))].sort();$('monthFilter').innerHTML='<option value="TODOS">Todos os meses</option>'+m.map(x=>`<option>${x}</option>`).join('');$('sellerFilter').innerHTML='<option value="TODOS">Todos</option>'+s.map(x=>`<option>${x}</option>`).join('');const last=m.at(-1),lastRow=rawData.find(x=>x.mes===last);$('generalGoalInput').value=lastRow?.metaGeral||0;}
-function currentRows(){const m=$('monthFilter').value,s=$('sellerFilter').value;return rawData.filter(x=>(m==='TODOS'||x.mes===m)&&(s==='TODOS'||x.vendedor===s));}
-function sum(rows){return rows.reduce((a,x)=>({orcamentos:a.orcamentos+x.orcamentos,vendas:a.vendas+x.vendas,faturamento:a.faturamento+x.faturamento}),{orcamentos:0,vendas:0,faturamento:0});}
-function group(rows,key){const out={};rows.forEach(x=>{const k=x[key];out[k]??={label:k,orcamentos:0,vendas:0,faturamento:0,metaIndividual:0,metaGeral:0,registros:0};out[k].orcamentos+=x.orcamentos;out[k].vendas+=x.vendas;out[k].faturamento+=x.faturamento;out[k].metaIndividual+=x.metaIndividual||0;out[k].metaGeral=Math.max(out[k].metaGeral,x.metaGeral||0);out[k].registros++;});return Object.values(out).map(x=>({...x,conversao:x.vendas/(x.vendas+x.orcamentos)||0,ticket:x.faturamento/x.vendas||0}));}
-function prevForSelected(){const selected=$('monthFilter').value;if(selected==='TODOS')return null;const idx=monthsOrder.indexOf(selected);if(idx<=0)return null;const seller=$('sellerFilter').value;return sum(rawData.filter(x=>x.mes===monthsOrder[idx-1]&&(seller==='TODOS'||x.vendedor===seller)));}
-function trend(current,previous,pp=false){if(!previous&&previous!==0)return {text:'Selecione um mês para comparar',cls:''};const d=pp?current-previous:(previous?((current-previous)/previous):0);return {text:`${d>=0?'↑':'↓'} ${Math.abs(d*(pp?100:100)).toFixed(2)}${pp?' p.p.':'%'} vs período anterior`,cls:d>=0?'up':'down'};}
-function chartBase(){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:css('--muted'),usePointStyle:true,boxWidth:8,font:{size:10}}}},scales:{x:{ticks:{color:css('--muted'),font:{size:9}},grid:{display:false}},y:{ticks:{color:css('--muted'),font:{size:9}},grid:{color:css('--border')}}}};}
-function kill(name){charts[name]?.destroy();}
-function render(){const rows=currentRows(),total=sum(rows),months=group(rows,'mes').sort((a,b)=>monthsOrder.indexOf(a.label)-monthsOrder.indexOf(b.label)),sellers=group(rows,'vendedor').sort((a,b)=>b.faturamento-a.faturamento),generalGoal=Number($('generalGoalInput').value)||Math.max(...rows.map(x=>x.metaGeral||0),0),monthCount=Math.max(new Set(rows.map(x=>x.mes)).size,1),effectiveGoal=$('monthFilter').value==='TODOS'?generalGoal*monthCount:generalGoal,conversion=total.vendas/(total.vendas+total.orcamentos)||0,ticket=total.faturamento/total.vendas||0,attainment=effectiveGoal?total.faturamento/effectiveGoal:0,prev=prevForSelected(),prevConv=prev?prev.vendas/(prev.vendas+prev.orcamentos)||0:null;
-$('kpiRevenue').textContent=brl(total.faturamento);$('kpiQuotes').textContent=num(total.orcamentos);$('kpiSales').textContent=num(total.vendas);$('kpiConversion').textContent=pct(conversion);$('kpiTicket').textContent=brl(ticket);$('kpiAttainment').textContent=pct(attainment);$('kpiAttainmentText').textContent=attainment>=1?'Meta atingida':'Em andamento';
-const revT=trend(total.faturamento,prev?.faturamento),quoteT=trend(total.orcamentos,prev?.orcamentos),saleT=trend(total.vendas,prev?.vendas),convT=trend(conversion,prevConv,true);[['kpiRevenueTrend',revT],['kpiQuotesTrend',quoteT],['kpiSalesTrend',saleT],['kpiConversionTrend',convT]].forEach(([id,t])=>{$(id).textContent=t.text;$(id).className=t.cls});
-$('sidebarGoal').textContent=brl(effectiveGoal);$('sidebarAttainment').textContent=pct(attainment);$('sidebarProgress').style.width=Math.min(attainment*100,100)+'%';$('sidebarRealized').textContent=brl(total.faturamento);$('sidebarGap').textContent=brl(Math.max(effectiveGoal-total.faturamento,0));$('updatedAt').textContent=new Date().toLocaleString('pt-BR');
-renderCharts(months,sellers,total,effectiveGoal,conversion,attainment);renderRanking(sellers);renderDetails(sellers);renderFunnel(total,conversion);renderInsights(sellers,total,effectiveGoal,conversion,months);}
-function renderCharts(months,sellers,total,effectiveGoal,conversion,attainment){const orange=css('--orange'),green=css('--green'),blue=css('--blue'),muted=css('--muted');kill('goalDonut');charts.goalDonut=new Chart($('goalDonut'),{type:'doughnut',data:{datasets:[{data:[Math.min(attainment,1),Math.max(1-attainment,0)],backgroundColor:[green,'#e8edf2'],borderWidth:0}]},options:{responsive:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
-const labels=months.map(x=>x.label);const goals=months.map(x=>x.metaGeral||Number($('generalGoalInput').value)||0);kill('revenueLine');charts.revenueLine=new Chart($('revenueLine'),{type:'line',data:{labels,datasets:[{label:'Faturamento',data:months.map(x=>x.faturamento),borderColor:blue,backgroundColor:'rgba(22,119,255,.10)',fill:false,tension:.35,pointRadius:3},{label:'Meta',data:goals,borderColor:orange,borderDash:[6,5],pointRadius:2}]},options:{...chartBase(),scales:{...chartBase().scales,y:{...chartBase().scales.y,ticks:{callback:v=>'R$ '+Math.round(v/1000)+' mil'}}}}});kill('revenueGoal');charts.revenueGoal=new Chart($('revenueGoal'),{type:'bar',data:{labels,datasets:[{label:'Faturamento',data:months.map(x=>x.faturamento),backgroundColor:blue,borderRadius:3},{label:'Meta',data:goals,backgroundColor:orange,borderRadius:3}]},options:{...chartBase(),scales:{...chartBase().scales,y:{...chartBase().scales.y,ticks:{callback:v=>'R$ '+Math.round(v/1000)+' mil'}}}}});kill('conversionLine');charts.conversionLine=new Chart($('conversionLine'),{type:'line',data:{labels,datasets:[{label:'Conversão',data:months.map(x=>x.conversao*100),borderColor:blue,backgroundColor:blue,tension:.35,pointRadius:3},{label:'Meta',data:months.map(()=>50),borderColor:orange,borderDash:[6,5],pointRadius:2}]},options:{...chartBase(),scales:{...chartBase().scales,y:{...chartBase().scales.y,min:0,max:100,ticks:{callback:v=>v+'%'}}}}});kill('sellerGoal');charts.sellerGoal=new Chart($('sellerGoalChart'),{type:'bar',data:{labels:sellers.map(x=>x.label),datasets:[{label:'Atingimento',data:sellers.map(x=>(x.metaIndividual?x.faturamento/x.metaIndividual:0)*100),backgroundColor:sellers.map(x=>x.faturamento/x.metaIndividual>=1?green:(x.faturamento/x.metaIndividual>=.8?orange:'#e5484d')),borderRadius:4}]},options:{...chartBase(),indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{...chartBase().scales.x,max:150,ticks:{callback:v=>v+'%'}},y:{...chartBase().scales.y}}}});}
-function statusClass(v){return v>=1?'good':v>=.8?'warn':'bad';}
-function renderRanking(sellers){$('rankingBody').innerHTML=sellers.map((x,i)=>{const a=x.metaIndividual?x.faturamento/x.metaIndividual:0;return `<tr><td>${i+1}</td><td><strong>${x.label}</strong></td><td>${brl(x.faturamento)}</td><td>${brl(x.metaIndividual)}</td><td class="${statusClass(a)}">${pct(a)}</td></tr>`}).join('');}
-function sellerPrevious(seller){const selected=$('monthFilter').value;if(selected==='TODOS')return null;const idx=monthsOrder.indexOf(selected);if(idx<=0)return null;return sum(rawData.filter(x=>x.mes===monthsOrder[idx-1]&&x.vendedor===seller));}
-function renderDetails(sellers){$('detailsBody').innerHTML=sellers.map(x=>{const a=x.metaIndividual?x.faturamento/x.metaIndividual:0,p=sellerPrevious(x.label),delta=p&&p.faturamento?(x.faturamento-p.faturamento)/p.faturamento:null;return `<tr><td><strong>${x.label}</strong></td><td>${num(x.orcamentos)}</td><td>${num(x.vendas)}</td><td>${pct(x.conversao)}</td><td>${brl(x.faturamento)}</td><td>${brl(x.ticket)}</td><td>${brl(x.metaIndividual)}</td><td class="${statusClass(a)}">${pct(a)}</td><td class="${delta===null?'':delta>=0?'good':'bad'}">${delta===null?'—':`${delta>=0?'↑':'↓'} ${Math.abs(delta*100).toFixed(2)}%`}</td></tr>`}).join('');}
-function renderFunnel(total,conversion){const opp=total.orcamentos+total.vendas,proposal=Math.round((opp+total.vendas)/2),rows=[['Orçamentos',opp,'#0878e8'],['Propostas',proposal,'#2eae55'],['Vendas',total.vendas,'#ff8b00'],['Conversão',pct(conversion),'#e53935']];$('funnel').innerHTML=rows.map((x,i)=>`<div class="funnel-row" style="width:${100-i*12}%;background:${x[2]}"><div><small>${x[0]}</small>${typeof x[1]==='number'?num(x[1]):x[1]}</div></div>`).join('');}
-function renderInsights(sellers,total,goal,conversion,months){const best=sellers[0],efficient=[...sellers].sort((a,b)=>b.conversao-a.conversao)[0],below=sellers.filter(x=>x.faturamento<x.metaIndividual).map(x=>x.label),latest=months.at(-1),prev=months.at(-2),growth=prev&&prev.faturamento?(latest.faturamento-prev.faturamento)/prev.faturamento:0;const cards=[`O faturamento atingiu <strong>${pct(total.faturamento/goal||0)}</strong> da meta geral.`,`${best?.label||'—'} lidera o faturamento com <strong>${brl(best?.faturamento||0)}</strong>.`,`${efficient?.label||'—'} possui a maior conversão: <strong>${pct(efficient?.conversao||0)}</strong>.`,below.length?`Atenção às metas de <strong>${below.join(', ')}</strong>.`:`Todos os vendedores atingiram suas metas.`];$('insightCards').innerHTML=cards.map(x=>`<div class="insight-card">${x}</div>`).join('');}
-function parseWorkbook(file){const reader=new FileReader();reader.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'});let out=[];const normalized=wb.Sheets['DADOS DASHBOARD'];if(normalized){const rows=XLSX.utils.sheet_to_json(normalized,{defval:null});out=rows.map(r=>({mes:String(r['MÊS']||'').toUpperCase(),vendedor:String(r['VENDEDOR']||''),orcamentos:Number(r['ORÇAMENTOS']),vendas:Number(r['VENDAS']),faturamento:Number(r['FATURAMENTO']),metaIndividual:Number(r['META INDIVIDUAL']),metaGeral:Number(r['META GERAL'])})).filter(x=>x.mes&&x.vendedor&&Number.isFinite(x.faturamento));}else{const ws=wb.Sheets[wb.SheetNames[0]],grid=XLSX.utils.sheet_to_json(ws,{header:1,raw:true}),metasSheet=wb.Sheets['METAS'],metaRows=metasSheet?XLSX.utils.sheet_to_json(metasSheet,{defval:0}):[],metaMap={};metaRows.forEach(r=>{const m=String(r['MÊS']||'').toUpperCase();metaMap[m]=r;});for(let r=0;r<grid.length;r++){const month=String(grid[r]?.[0]||'').trim().toUpperCase();if(!month)continue;for(let c=1;c<grid[r].length;c+=2){const seller=String(grid[r]?.[c]||'').trim();if(!seller)continue;const o=Number(grid[r+1]?.[c+1]),v=Number(grid[r+2]?.[c+1]),f=Number(grid[r+4]?.[c+1]);if(Number.isFinite(o)&&Number.isFinite(v)&&Number.isFinite(f)){const mr=metaMap[month]||{};out.push({mes:month,vendedor:seller[0].toUpperCase()+seller.slice(1).toLowerCase(),orcamentos:o,vendas:v,faturamento:f,metaIndividual:Number(mr[seller.toUpperCase()]||0),metaGeral:Number(mr['META GERAL']||0)});}}}}if(!out.length)throw new Error('Formato não reconhecido');rawData=out;fillFilters();render();alert('Planilha importada com sucesso.');}catch(err){console.error(err);alert('Não foi possível ler a planilha. Use o modelo incluído na pasta dados.');}};reader.readAsArrayBuffer(file);}
-function exportCSV(){const rows=currentRows(),head='Mês;Vendedor;Orçamentos;Vendas;Conversão;Faturamento;Meta Individual;Meta Geral\n',body=rows.map(x=>[x.mes,x.vendedor,x.orcamentos,x.vendas,((x.vendas/(x.vendas+x.orcamentos)||0)*100).toFixed(2),x.faturamento.toFixed(2),x.metaIndividual.toFixed(2),x.metaGeral.toFixed(2)].join(';')).join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+head+body],{type:'text/csv'}));a.download='dashboard_eletrica_lima.csv';a.click();}
-$('monthFilter').onchange=render;$('sellerFilter').onchange=render;$('generalGoalInput').oninput=render;$('excelInput').onchange=e=>e.target.files[0]&&parseWorkbook(e.target.files[0]);$('refreshBtn').onclick=render;$('printBtn').onclick=()=>print();$('csvBtn').onclick=exportCSV;$('themeBtn').onclick=()=>{document.body.classList.toggle('dark');render()};fillFilters();render();
+
+const App = (() => {
+  let rawData = [...(window.INITIAL_DATA || [])];
+  let charts = {};
+  let lastUpdatedAt = null;
+  const monthsOrder = ['JANEIRO','FEVEREIRO','MARCO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+  const $ = id => document.getElementById(id);
+  const brl = value => Number(value || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+  const num = value => Number(value || 0).toLocaleString('pt-BR');
+  const pct = value => `${(Number(value || 0) * 100).toLocaleString('pt-BR', { minimumFractionDigits:1, maximumFractionDigits:1 })}%`;
+  const css = value => getComputedStyle(document.body).getPropertyValue(value).trim();
+  const normalizeMonth = value => window.DashboardAPI.normalizeText(value);
+
+  function toast(message, type = 'success') {
+    const item = document.createElement('div');
+    item.className = `toast ${type}`;
+    item.textContent = message;
+    $('toastRegion').appendChild(item);
+    setTimeout(() => item.remove(), 4500);
+  }
+
+  function setSync(status, message, date = lastUpdatedAt) {
+    $('syncDot').className = `sync-dot ${status}`;
+    $('syncStatus').textContent = message;
+    $('refreshBtn').disabled = status === 'loading';
+    $('refreshBtn').classList.toggle('is-loading', status === 'loading');
+    if (date) $('updatedAt').textContent = `Última atualização: ${new Date(date).toLocaleString('pt-BR')}`;
+    const hours = date ? (Date.now() - new Date(date).getTime()) / 36e5 : Infinity;
+    $('staleAlert').hidden = hours <= window.DASHBOARD_CONFIG.staleAfterHours;
+  }
+
+  async function synchronize({ notify = false } = {}) {
+    setSync('loading', 'Sincronizando com o Google Sheets…');
+    try {
+      const result = await window.DashboardAPI.fetchOnline();
+      rawData = result.rows;
+      lastUpdatedAt = result.updatedAt;
+      window.DashboardAPI.saveCache(result);
+      $('dataSource').textContent = 'Google Sheets — online';
+      fillFilters(true);
+      render();
+      setSync('online', 'Google Sheets conectado', lastUpdatedAt);
+      if (notify) toast('Dados atualizados com sucesso.');
+    } catch (error) {
+      console.error(error);
+      const cache = window.DashboardAPI.loadCache();
+      if (cache) {
+        rawData = cache.rows;
+        lastUpdatedAt = cache.updatedAt;
+        $('dataSource').textContent = 'Cache local';
+        fillFilters(true);
+        render();
+        setSync('warning', 'Sem conexão — exibindo o último cache', lastUpdatedAt);
+        if (notify) toast('Não foi possível acessar o Google Sheets. O cache foi mantido.', 'warning');
+      } else {
+        $('dataSource').textContent = 'Dados locais de contingência';
+        fillFilters(true);
+        render();
+        setSync('error', 'Google Sheets indisponível — usando dados locais');
+        if (notify) toast(error.message, 'error');
+      }
+    }
+  }
+
+  function orderedMonths(rows = rawData) {
+    return [...new Set(rows.map(row => normalizeMonth(row.mes)))].sort((a,b) => monthsOrder.indexOf(a) - monthsOrder.indexOf(b));
+  }
+
+  function fillFilters(preserve = false) {
+    const selectedMonth = preserve ? $('monthFilter').value : 'TODOS';
+    const selectedSeller = preserve ? $('sellerFilter').value : 'TODOS';
+    const months = orderedMonths();
+    const sellers = [...new Set(rawData.map(row => row.vendedor))].sort();
+    $('monthFilter').innerHTML = '<option value="TODOS">Todos os meses</option>' + months.map(month => `<option value="${month}">${month}</option>`).join('');
+    $('sellerFilter').innerHTML = '<option value="TODOS">Todos</option>' + sellers.map(seller => `<option>${seller}</option>`).join('');
+    if ([...$('monthFilter').options].some(option => option.value === selectedMonth)) $('monthFilter').value = selectedMonth;
+    if ([...$('sellerFilter').options].some(option => option.value === selectedSeller)) $('sellerFilter').value = selectedSeller;
+    const last = months.at(-1);
+    $('generalGoalInput').value = rawData.find(row => normalizeMonth(row.mes) === last)?.metaGeral || 0;
+  }
+
+  function currentRows() {
+    const month = $('monthFilter').value;
+    const seller = $('sellerFilter').value;
+    return rawData.filter(row => (month === 'TODOS' || normalizeMonth(row.mes) === month) && (seller === 'TODOS' || row.vendedor === seller));
+  }
+
+  function sum(rows) {
+    return rows.reduce((acc,row) => ({ orcamentos:acc.orcamentos+row.orcamentos, vendas:acc.vendas+row.vendas, faturamento:acc.faturamento+row.faturamento }), { orcamentos:0, vendas:0, faturamento:0 });
+  }
+
+  function group(rows, key) {
+    const output = {};
+    rows.forEach(row => {
+      const label = key === 'mes' ? normalizeMonth(row.mes) : row[key];
+      output[label] ||= { label, orcamentos:0, vendas:0, faturamento:0, metaIndividual:0, metaGeral:0 };
+      Object.assign(output[label], {
+        orcamentos: output[label].orcamentos + row.orcamentos,
+        vendas: output[label].vendas + row.vendas,
+        faturamento: output[label].faturamento + row.faturamento,
+        metaIndividual: output[label].metaIndividual + (row.metaIndividual || 0),
+        metaGeral: Math.max(output[label].metaGeral, row.metaGeral || 0)
+      });
+    });
+    return Object.values(output).map(item => ({ ...item, conversao:item.vendas/(item.vendas+item.orcamentos)||0, ticket:item.faturamento/item.vendas||0 }));
+  }
+
+  function previousTotal(seller = $('sellerFilter').value) {
+    const selected = $('monthFilter').value;
+    const index = monthsOrder.indexOf(selected);
+    if (selected === 'TODOS' || index <= 0) return null;
+    return sum(rawData.filter(row => normalizeMonth(row.mes) === monthsOrder[index-1] && (seller === 'TODOS' || row.vendedor === seller)));
+  }
+
+  function trend(current, previous, points = false) {
+    if (previous === null || previous === undefined) return { text:'Selecione um mês para comparar', cls:'' };
+    const delta = points ? current-previous : (previous ? (current-previous)/previous : 0);
+    return { text:`${delta >= 0 ? '↑' : '↓'} ${Math.abs(delta*100).toFixed(1)}${points ? ' p.p.' : '%'} vs mês anterior`, cls:delta >= 0 ? 'up' : 'down' };
+  }
+
+  function chartBase() {
+    return { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:css('--muted'), usePointStyle:true, boxWidth:8, font:{size:10} } } }, scales:{ x:{ticks:{color:css('--muted'),font:{size:9}},grid:{display:false}}, y:{ticks:{color:css('--muted'),font:{size:9}},grid:{color:css('--border')}} } };
+  }
+  function kill(name) { charts[name]?.destroy(); }
+
+  function render() {
+    const rows = currentRows();
+    const total = sum(rows);
+    const months = group(rows,'mes').sort((a,b) => monthsOrder.indexOf(a.label)-monthsOrder.indexOf(b.label));
+    const sellers = group(rows,'vendedor').sort((a,b) => b.faturamento-a.faturamento);
+    const baseGoal = Number($('generalGoalInput').value) || Math.max(...rows.map(row => row.metaGeral || 0),0);
+    const monthCount = Math.max(new Set(rows.map(row => normalizeMonth(row.mes))).size,1);
+    const effectiveGoal = $('monthFilter').value === 'TODOS' ? baseGoal*monthCount : baseGoal;
+    const conversion = total.vendas/(total.vendas+total.orcamentos)||0;
+    const attainment = effectiveGoal ? total.faturamento/effectiveGoal : 0;
+    const previous = previousTotal();
+    const previousConversion = previous ? previous.vendas/(previous.vendas+previous.orcamentos)||0 : null;
+    const values = {
+      kpiRevenue:brl(total.faturamento), kpiQuotes:num(total.orcamentos), kpiSales:num(total.vendas),
+      kpiConversion:pct(conversion), kpiTicket:brl(total.faturamento/total.vendas||0), kpiAttainment:pct(attainment)
+    };
+    Object.entries(values).forEach(([id,value]) => $(id).textContent = value);
+    $('kpiAttainmentText').textContent = attainment >= 1 ? 'Meta atingida' : `${brl(Math.max(effectiveGoal-total.faturamento,0))} restantes`;
+    [['kpiRevenueTrend',trend(total.faturamento,previous?.faturamento)],['kpiQuotesTrend',trend(total.orcamentos,previous?.orcamentos)],['kpiSalesTrend',trend(total.vendas,previous?.vendas)],['kpiConversionTrend',trend(conversion,previousConversion,true)]].forEach(([id,item]) => { $(id).textContent=item.text; $(id).className=item.cls; });
+    $('sidebarGoal').textContent=brl(effectiveGoal); $('sidebarAttainment').textContent=pct(attainment); $('sidebarProgress').style.width=`${Math.min(attainment*100,100)}%`; $('sidebarRealized').textContent=brl(total.faturamento); $('sidebarGap').textContent=brl(Math.max(effectiveGoal-total.faturamento,0));
+    renderCharts(months,sellers,attainment);
+    renderTables(sellers);
+    renderFunnel(total,conversion);
+    renderInsights(sellers,total,effectiveGoal,months);
+  }
+
+  function renderCharts(months,sellers,attainment) {
+    const orange=css('--orange'), green=css('--green'), blue=css('--blue');
+    kill('goalDonut'); charts.goalDonut=new Chart($('goalDonut'),{type:'doughnut',data:{datasets:[{data:[Math.min(attainment,1),Math.max(1-attainment,0)],backgroundColor:[green,css('--border')],borderWidth:0}]},options:{responsive:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
+    const labels=months.map(item=>item.label); const goals=months.map(item=>item.metaGeral||Number($('generalGoalInput').value)||0);
+    kill('revenueLine'); charts.revenueLine=new Chart($('revenueLine'),{type:'line',data:{labels,datasets:[{label:'Faturamento',data:months.map(item=>item.faturamento),borderColor:blue,backgroundColor:'rgba(22,119,255,.10)',tension:.35,pointRadius:3},{label:'Meta',data:goals,borderColor:orange,borderDash:[6,5],pointRadius:2}]},options:chartBase()});
+    kill('revenueGoal'); charts.revenueGoal=new Chart($('revenueGoal'),{type:'bar',data:{labels,datasets:[{label:'Faturamento',data:months.map(item=>item.faturamento),backgroundColor:blue,borderRadius:4},{label:'Meta',data:goals,backgroundColor:orange,borderRadius:4}]},options:chartBase()});
+    kill('conversionLine'); charts.conversionLine=new Chart($('conversionLine'),{type:'line',data:{labels,datasets:[{label:'Conversão',data:months.map(item=>item.conversao*100),borderColor:blue,tension:.35,pointRadius:3},{label:'Referência',data:months.map(()=>50),borderColor:orange,borderDash:[6,5],pointRadius:2}]},options:{...chartBase(),scales:{...chartBase().scales,y:{...chartBase().scales.y,min:0,max:100,ticks:{callback:value=>`${value}%`}}}}});
+    kill('sellerGoal'); charts.sellerGoal=new Chart($('sellerGoalChart'),{type:'bar',data:{labels:sellers.map(item=>item.label),datasets:[{data:sellers.map(item=>(item.metaIndividual?item.faturamento/item.metaIndividual:0)*100),backgroundColor:sellers.map(item=>item.faturamento/item.metaIndividual>=1?green:item.faturamento/item.metaIndividual>=.8?orange:'#e5484d'),borderRadius:4}]},options:{...chartBase(),indexAxis:'y',plugins:{legend:{display:false}}}});
+  }
+
+  function statusClass(value) { return value>=1?'good':value>=.8?'warn':'bad'; }
+  function renderTables(sellers) {
+    $('rankingBody').innerHTML=sellers.map((item,index)=>{const goal=item.metaIndividual?item.faturamento/item.metaIndividual:0;return `<tr><td>${index+1}</td><td><strong>${item.label}</strong></td><td>${brl(item.faturamento)}</td><td>${brl(item.metaIndividual)}</td><td class="${statusClass(goal)}">${pct(goal)}</td></tr>`;}).join('');
+    $('detailsBody').innerHTML=sellers.map(item=>{const goal=item.metaIndividual?item.faturamento/item.metaIndividual:0; const previous=previousTotal(item.label); const delta=previous?.faturamento?(item.faturamento-previous.faturamento)/previous.faturamento:null; return `<tr><td><strong>${item.label}</strong></td><td>${num(item.orcamentos)}</td><td>${num(item.vendas)}</td><td>${pct(item.conversao)}</td><td>${brl(item.faturamento)}</td><td>${brl(item.ticket)}</td><td>${brl(item.metaIndividual)}</td><td class="${statusClass(goal)}">${pct(goal)}</td><td class="${delta===null?'':delta>=0?'good':'bad'}">${delta===null?'—':`${delta>=0?'↑':'↓'} ${Math.abs(delta*100).toFixed(1)}%`}</td></tr>`;}).join('');
+  }
+
+  function renderFunnel(total,conversion) {
+    const opportunities=total.orcamentos+total.vendas;
+    $('funnel').innerHTML=[['Oportunidades',opportunities,'#0878e8'],['Orçamentos',total.orcamentos,'#2eae55'],['Vendas',total.vendas,'#ff8b00'],['Conversão',pct(conversion),'#e53935']].map((item,index)=>`<div class="funnel-row" style="width:${100-index*12}%;background:${item[2]}"><div><small>${item[0]}</small>${typeof item[1]==='number'?num(item[1]):item[1]}</div></div>`).join('');
+  }
+
+  function renderInsights(sellers,total,goal,months) {
+    const best=sellers[0]; const efficient=[...sellers].sort((a,b)=>b.conversao-a.conversao)[0]; const below=sellers.filter(item=>item.metaIndividual&&item.faturamento<item.metaIndividual); const latest=months.at(-1), previous=months.at(-2); const growth=previous?.faturamento?(latest.faturamento-previous.faturamento)/previous.faturamento:null;
+    const cards=[
+      `A loja alcançou <strong>${pct(total.faturamento/goal||0)}</strong> da meta no período selecionado.`,
+      `<strong>${best?.label||'—'}</strong> lidera o faturamento com ${brl(best?.faturamento||0)}.`,
+      `<strong>${efficient?.label||'—'}</strong> tem a maior conversão: ${pct(efficient?.conversao||0)}.`,
+      growth===null?'Selecione um mês para analisar a variação mensal.':`O último mês está <strong class="${growth>=0?'good':'bad'}">${growth>=0?'acima':'abaixo'} ${Math.abs(growth*100).toFixed(1)}%</strong> do anterior.`,
+      below.length?`Atenção às metas de <strong>${below.map(item=>item.label).join(', ')}</strong>.`:'Todos os vendedores atingiram suas metas.'
+    ];
+    $('insightCards').innerHTML=cards.map(text=>`<div class="insight-card">${text}</div>`).join('');
+  }
+
+  function exportCSV() {
+    const header='Mês;Vendedor;Orçamentos;Vendas;Conversão;Faturamento;Meta Individual;Meta Geral\n';
+    const body=currentRows().map(row=>[normalizeMonth(row.mes),row.vendedor,row.orcamentos,row.vendas,((row.vendas/(row.vendas+row.orcamentos)||0)*100).toFixed(2),row.faturamento.toFixed(2),row.metaIndividual.toFixed(2),row.metaGeral.toFixed(2)].join(';')).join('\n');
+    const link=document.createElement('a'); link.href=URL.createObjectURL(new Blob(['\ufeff'+header+body],{type:'text/csv;charset=utf-8'})); link.download=`dashboard-eletrica-lima-${new Date().toISOString().slice(0,10)}.csv`; link.click(); URL.revokeObjectURL(link.href);
+  }
+
+  function importWorkbook(file) {
+    const reader=new FileReader();
+    reader.onload=event=>{
+      try {
+        const workbook=XLSX.read(event.target.result,{type:'array'}); const sheet=workbook.Sheets['DADOS DASHBOARD'];
+        if(!sheet) throw new Error('A aba DADOS DASHBOARD não foi encontrada.');
+        const rows=XLSX.utils.sheet_to_json(sheet,{defval:0});
+        const payload={vendas:rows.map(row=>({mes:row['MÊS']||row.MES,vendedor:row.VENDEDOR,orcamentos:row['ORÇAMENTOS']||row.ORCAMENTOS,vendas:row.VENDAS,faturamento:row.FATURAMENTO,metaIndividual:row['META INDIVIDUAL'],metaGeral:row['META GERAL']}))};
+        const normalized=payload.vendas.map(row=>({...row,mes:normalizeMonth(row.mes),orcamentos:DashboardAPI.number(row.orcamentos),vendas:DashboardAPI.number(row.vendas),faturamento:DashboardAPI.number(row.faturamento),metaIndividual:DashboardAPI.number(row.metaIndividual),metaGeral:DashboardAPI.number(row.metaGeral)})).filter(row=>row.mes&&row.vendedor);
+        if(!normalized.length) throw new Error('Nenhuma linha válida foi encontrada.');
+        rawData=normalized; lastUpdatedAt=new Date().toISOString(); $('dataSource').textContent='Excel importado'; fillFilters(); render(); setSync('warning','Dados importados manualmente',lastUpdatedAt); toast('Planilha importada com sucesso.');
+      } catch(error) { toast(error.message,'error'); }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function bindEvents() {
+    $('monthFilter').addEventListener('change',render); $('sellerFilter').addEventListener('change',render); $('generalGoalInput').addEventListener('input',render);
+    $('refreshBtn').addEventListener('click',()=>synchronize({notify:true})); $('printBtn').addEventListener('click',()=>window.print()); $('csvBtn').addEventListener('click',exportCSV);
+    $('excelInput').addEventListener('change',event=>event.target.files[0]&&importWorkbook(event.target.files[0]));
+    $('themeBtn').addEventListener('click',()=>{document.body.classList.toggle('dark');localStorage.setItem('eletrica-lima-theme',document.body.classList.contains('dark')?'dark':'light');render();});
+    $('menuBtn').addEventListener('click',()=>$('sidebar').classList.toggle('open'));
+  }
+
+  function init() {
+    if(localStorage.getItem('eletrica-lima-theme')==='dark') document.body.classList.add('dark');
+    fillFilters(); bindEvents(); render(); synchronize();
+    setInterval(()=>synchronize(),window.DASHBOARD_CONFIG.refreshIntervalMinutes*60*1000);
+  }
+  return { init, synchronize };
+})();
+
+document.addEventListener('DOMContentLoaded', App.init);
