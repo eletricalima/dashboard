@@ -1,25 +1,32 @@
-# Dashboard Comercial 2.0 — Elétrica Lima
+# Dashboard Comercial 3.0 — Elétrica Lima
 
-Versão 2.0 do painel de acompanhamento comercial.
+Versão atualizada conforme o layout aprovado, com identidade visual da Elétrica Lima.
 
-## Novidades
+## Arquivos
 
-- comparação com o mês anterior;
-- meta mensal configurável;
-- atingimento de meta por vendedor;
-- gráfico combinado de faturamento e conversão;
-- gráfico de dispersão conversão × faturamento;
-- novos insights gerenciais;
-- exportação CSV ampliada;
-- visual responsivo com tema claro e escuro.
+- `index.html`: página principal;
+- `css/style.css`: layout responsivo;
+- `js/app.js`: filtros, indicadores, gráficos e importação de Excel;
+- `js/data.js`: dados iniciais;
+- `assets/logo.png`: logomarca;
+- `dados/Pasta1_com_metas_dashboard.xlsx`: planilha modelo com metas.
 
-## Como usar
+## Planilha
 
-1. Abra `index.html` no Chrome ou Edge.
-2. Use os filtros de mês e vendedor.
-3. Ajuste a meta mensal no campo **Meta mensal**.
-4. Para atualizar os dados, clique em **Importar Excel**.
+A planilha possui duas novas abas:
 
-## Publicar no GitHub Pages
+- **METAS**: meta geral da loja e meta individual por vendedor/mês;
+- **DADOS DASHBOARD**: formato normalizado utilizado pelo importador.
 
-No repositório, acesse **Settings → Pages → Deploy from a branch → main → / (root)**.
+Edite as metas diretamente na aba **METAS**. Para garantir a leitura automática, atualize também a aba **DADOS DASHBOARD**, ou mantenha a estrutura existente para que o dashboard faça a leitura combinada.
+
+## Uso
+
+1. Extraia o ZIP.
+2. Abra `index.html` no Chrome ou Edge.
+3. Clique em **Importar Excel** para carregar a planilha atualizada.
+4. Use **Imprimir** para salvar o painel em PDF.
+
+## GitHub Pages
+
+Publique os arquivos na raiz do repositório e ative: `Settings → Pages → Deploy from a branch → main → / (root)`.
