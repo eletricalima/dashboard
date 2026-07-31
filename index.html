@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Dashboard comercial da Elétrica Lima">
+  <title>Dashboard Comercial | Elétrica Lima</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="logo-wrap"><img src="assets/logo.png" alt="Elétrica Lima"></div>
+    <nav>
+      <a class="active" href="#overview"><span>▦</span>Dashboard</a>
+      <a href="#ranking"><span>★</span>Vendedores</a>
+      <a href="#goals"><span>◎</span>Metas</a>
+      <a href="#charts"><span>⌁</span>Análises</a>
+      <a href="#details"><span>≡</span>Relatórios</a>
+      <label class="nav-upload"><span>⇩</span>Importar Excel<input id="excelInput" type="file" accept=".xlsx,.xls" hidden></label>
+    </nav>
+
+    <section class="sidebar-goal">
+      <div class="goal-title">🎯 Meta geral da loja</div>
+      <strong id="sidebarGoal">—</strong>
+      <span>Atingimento</span>
+      <b id="sidebarAttainment">—</b>
+      <div class="progress"><i id="sidebarProgress"></i></div>
+      <small>Realizado</small><strong id="sidebarRealized">—</strong>
+      <small>Faltam para a meta</small><strong id="sidebarGap">—</strong>
+    </section>
+
+    <footer class="side-footer">© 2026 Elétrica Lima<br>Dashboard Comercial 3.0</footer>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="title-block"><button id="menuBtn" class="menu-btn">☰</button><div><h1>Dashboard Comercial</h1><p>Visão geral do desempenho comercial</p></div></div>
+      <div class="top-actions"><button id="themeBtn" class="icon-btn">☼</button><button id="printBtn" class="btn ghost">Imprimir</button><button id="refreshBtn" class="btn primary">Atualizar dados</button></div>
+    </header>
+
+    <section class="filters" id="overview">
+      <div><label>Período</label><select id="monthFilter"><option value="TODOS">Todos os meses</option></select></div>
+      <div><label>Vendedor</label><select id="sellerFilter"><option value="TODOS">Todos</option></select></div>
+      <div><label>Meta geral da loja</label><input id="generalGoalInput" type="number" min="0" step="10000"></div>
+      <div class="updated"><span>Atualizado em</span><strong id="updatedAt">—</strong></div>
+    </section>
+
+    <section class="kpi-grid">
+      <article class="kpi"><div class="icon green">$</div><div><span>Faturamento</span><strong id="kpiRevenue">—</strong><small id="kpiRevenueTrend">—</small></div></article>
+      <article class="kpi"><div class="icon blue">▤</div><div><span>Orçamentos</span><strong id="kpiQuotes">—</strong><small id="kpiQuotesTrend">—</small></div></article>
+      <article class="kpi"><div class="icon green">✓</div><div><span>Vendas</span><strong id="kpiSales">—</strong><small id="kpiSalesTrend">—</small></div></article>
+      <article class="kpi"><div class="icon purple">▼</div><div><span>Conversão</span><strong id="kpiConversion">—</strong><small id="kpiConversionTrend">—</small></div></article>
+      <article class="kpi"><div class="icon orange">▣</div><div><span>Ticket médio</span><strong id="kpiTicket">—</strong><small>Valor médio por venda</small></div></article>
+      <article class="kpi attainment"><div class="icon orange">◎</div><div><span>Atingimento da meta</span><strong id="kpiAttainment">—</strong><small id="kpiAttainmentText">—</small></div><canvas id="goalDonut" width="70" height="70"></canvas></article>
+    </section>
+
+    <section class="charts-grid" id="charts">
+      <article class="panel"><div class="panel-head"><h2>Evolução do faturamento</h2><span>Faturamento x meta</span></div><div class="chart"><canvas id="revenueLine"></canvas></div></article>
+      <article class="panel"><div class="panel-head"><h2>Faturamento vs meta</h2><span>Comparação mensal</span></div><div class="chart"><canvas id="revenueGoal"></canvas></div></article>
+      <article class="panel"><div class="panel-head"><h2>Conversão mensal</h2><span>Conversão x referência</span></div><div class="chart"><canvas id="conversionLine"></canvas></div></article>
+    </section>
+
+    <section class="lower-grid" id="ranking">
+      <article class="panel ranking-panel"><div class="panel-head"><h2>Ranking de vendedores</h2><span>Faturamento e metas</span></div><div class="table-scroll"><table><thead><tr><th>#</th><th>Vendedor</th><th>Faturamento</th><th>Meta individual</th><th>Atingimento</th></tr></thead><tbody id="rankingBody"></tbody></table></div></article>
+      <article class="panel"><div class="panel-head"><h2>Atingimento da meta por vendedor</h2><span>Meta = 100%</span></div><div class="chart"><canvas id="sellerGoalChart"></canvas></div></article>
+      <article class="panel"><div class="panel-head"><h2>Funil comercial</h2><span>Oportunidades e conversão</span></div><div id="funnel" class="funnel"></div></article>
+    </section>
+
+    <section class="panel details" id="details">
+      <div class="panel-head"><div><h2>Detalhamento por vendedor</h2><span>Indicadores consolidados conforme os filtros</span></div><div><button id="csvBtn" class="btn ghost">Exportar CSV</button></div></div>
+      <div class="table-scroll"><table><thead><tr><th>Vendedor</th><th>Orçamentos</th><th>Vendas</th><th>Conversão</th><th>Faturamento</th><th>Ticket médio</th><th>Meta</th><th>Atingimento</th><th>vs mês anterior</th></tr></thead><tbody id="detailsBody"></tbody></table></div>
+    </section>
+
+    <section class="insights"><h3>💡 Insights do período</h3><div id="insightCards" class="insight-cards"></div></section>
+  </main>
+</div>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
