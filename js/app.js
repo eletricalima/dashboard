@@ -1,4 +1,141 @@
 'use strict';
+let metasData = [];
+let ultimaAtualizacao = null;
+
+async function carregarDadosOnline({
+  exibirMensagem = false,
+} = {}) {
+  const config = window.DASHBOARD_CONFIG || {};
+  const url = config.appsScriptUrl;
+
+  if (!url || url.includes("COLE_AQUI")) {
+    console.warn("URL do Apps Script ainda não configurada.");
+    usarDadosLocais();
+    return;
+  }
+
+  definirStatusAtualizacao("Atualizando dados...", "loading");
+
+  try {
+    const resposta = await fetch(`${url}?t=${Date.now()}`, {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    if (!resposta.ok) {
+      throw new Error(`Erro HTTP ${resposta.status}`);
+    }
+
+    const resultado = await resposta.json();
+
+    if (!resultado.sucesso) {
+      throw new Error(resultado.erro || "Resposta inválida da API.");
+    }
+
+    if (!Array.isArray(resultado.vendas)) {
+      throw new Error("A API não retornou os dados de vendas.");
+    }
+
+    rawData = resultado.vendas;
+    metasData = Array.isArray(resultado.metas)
+      ? resultado.metas
+      : [];
+
+    ultimaAtualizacao = new Date(
+      resultado.atualizadoEm || Date.now()
+    );
+
+    salvarCacheLocal(resultado);
+
+    options();
+    render();
+    atualizarIndicadorData();
+
+    definirStatusAtualizacao("Dados atualizados", "success");
+
+    if (exibirMensagem) {
+      mostrarToast("Dados atualizados com sucesso.");
+    }
+  } catch (erro) {
+    console.error("Falha ao atualizar dados:", erro);
+
+    const cacheCarregado = carregarCacheLocal();
+
+    if (!cacheCarregado) {
+      usarDadosLocais();
+    }
+
+    definirStatusAtualizacao(
+      "Usando última versão disponível",
+      "warning"
+    );
+
+    if (exibirMensagem) {
+      mostrarToast(
+        "Não foi possível acessar o Google Sheets.",
+        "warning"
+      );
+    }
+  }
+}
+
+function usarDadosLocais() {
+  rawData = [...window.INITIAL_DATA];
+  options();
+  render();
+
+  definirStatusAtualizacao(
+    "Dados locais carregados",
+    "warning"
+  );
+}
+
+function salvarCacheLocal(resultado) {
+  try {
+    localStorage.setItem(
+      "eletricaLimaDashboardCache",
+      JSON.stringify(resultado)
+    );
+  } catch (erro) {
+    console.warn("Não foi possível salvar o cache.", erro);
+  }
+}
+
+function carregarCacheLocal() {
+  try {
+    const conteudo = localStorage.getItem(
+      "eletricaLimaDashboardCache"
+    );
+
+    if (!conteudo) {
+      return false;
+    }
+
+    const cache = JSON.parse(conteudo);
+
+    if (!Array.isArray(cache.vendas)) {
+      return false;
+    }
+
+    rawData = cache.vendas;
+    metasData = Array.isArray(cache.metas)
+      ? cache.metas
+      : [];
+
+    ultimaAtualizacao = new Date(
+      cache.atualizadoEm || Date.now()
+    );
+
+    options();
+    render();
+    atualizarIndicadorData();
+
+    return true;
+  } catch (erro) {
+    console.warn("Cache inválido.", erro);
+    return false;
+  }
+}
 let rawData=[...window.INITIAL_DATA],charts={};
 const monthsOrder=['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
 const $=id=>document.getElementById(id);
