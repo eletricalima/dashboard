@@ -1,9 +1,12 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Dashboard Comercial | Elétrica Lima</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Dashboard comercial da Elétrica Lima">
+  <title>Dashboard Comercial 2.0 | Elétrica Lima</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -12,41 +15,85 @@
 <body>
 <div class="app-shell">
   <aside class="sidebar">
-    <div class="brand"><div class="brand-mark">EL</div><div><strong>Elétrica Lima</strong><span>Gestão Comercial</span></div></div>
-    <nav><a class="active" href="#visao-geral">▦ <span>Visão geral</span></a><a href="#graficos">⌁ <span>Desempenho</span></a><a href="#ranking">★ <span>Ranking</span></a><a href="#tabela">≡ <span>Dados</span></a></nav>
-    <div class="sidebar-note"><strong>Período analisado</strong><span id="periodoSidebar">Março a Julho</span></div>
+    <div class="brand">
+      <div class="brand-mark">EL</div>
+      <div><strong>Elétrica Lima</strong><span>Dashboard Comercial 2.0</span></div>
+    </div>
+    <nav>
+      <a class="active" href="#overview">▦ <span>Visão geral</span></a>
+      <a href="#performance">⌁ <span>Desempenho</span></a>
+      <a href="#targets">◎ <span>Metas</span></a>
+      <a href="#ranking">★ <span>Ranking</span></a>
+      <a href="#details">≡ <span>Detalhamento</span></a>
+    </nav>
+    <div class="sidebar-note">
+      <strong>Status do painel</strong>
+      <span id="statusText">Dados carregados</span>
+    </div>
   </aside>
 
   <main class="main">
-    <header class="topbar"><div><p class="eyebrow">PAINEL EXECUTIVO</p><h1>Dashboard Comercial</h1><p class="subtitle">Orçamentos, conversão e faturamento por vendedor</p></div>
-      <div class="top-actions"><button id="themeBtn" class="icon-btn" title="Alternar tema">◐</button><button id="printBtn" class="btn secondary">Imprimir</button><label class="btn primary">Importar Excel<input id="excelInput" type="file" accept=".xlsx,.xls" hidden></label></div>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">PAINEL EXECUTIVO</p>
+        <h1>Dashboard Comercial <span class="version">2.0</span></h1>
+        <p class="subtitle">Conversão, faturamento, metas e evolução da equipe</p>
+      </div>
+      <div class="top-actions">
+        <button id="themeBtn" class="icon-btn" title="Alternar tema">◐</button>
+        <button id="printBtn" class="btn secondary">Salvar PDF</button>
+        <label class="btn primary">Importar Excel<input id="excelInput" type="file" accept=".xlsx,.xls" hidden></label>
+      </div>
     </header>
 
-    <section class="filter-card" id="visao-geral"><div class="filter-group"><label>Mês</label><select id="monthFilter"><option value="TODOS">Todos os meses</option></select></div><div class="filter-group"><label>Vendedor</label><select id="sellerFilter"><option value="TODOS">Todos os vendedores</option></select></div><div class="filter-group grow"><label>Pesquisar tabela</label><input id="searchInput" placeholder="Digite vendedor ou mês"></div><button id="resetBtn" class="btn ghost">Limpar filtros</button></section>
+    <section class="filter-card" id="overview">
+      <div class="filter-group"><label>Mês</label><select id="monthFilter"><option value="TODOS">Todos os meses</option></select></div>
+      <div class="filter-group"><label>Vendedor</label><select id="sellerFilter"><option value="TODOS">Todos os vendedores</option></select></div>
+      <div class="filter-group"><label>Meta mensal</label><input id="targetInput" type="number" min="0" step="10000" value="500000"></div>
+      <div class="filter-group grow"><label>Pesquisar tabela</label><input id="searchInput" placeholder="Digite vendedor ou mês"></div>
+      <button id="resetBtn" class="btn ghost">Limpar</button>
+    </section>
 
     <section class="kpi-grid">
-      <article class="kpi"><div class="kpi-icon blue">R$</div><div><span>Faturamento</span><strong id="kpiRevenue">—</strong><small id="kpiRevenueShare">Período filtrado</small></div></article>
-      <article class="kpi"><div class="kpi-icon purple">%</div><div><span>Conversão geral</span><strong id="kpiConversion">—</strong><small>Vendas ÷ oportunidades</small></div></article>
-      <article class="kpi"><div class="kpi-icon green">✓</div><div><span>Vendas efetuadas</span><strong id="kpiSales">—</strong><small id="kpiTicket">Ticket médio —</small></div></article>
+      <article class="kpi"><div class="kpi-icon blue">R$</div><div><span>Faturamento</span><strong id="kpiRevenue">—</strong><small id="kpiRevenueTrend">—</small></div></article>
+      <article class="kpi"><div class="kpi-icon purple">%</div><div><span>Conversão geral</span><strong id="kpiConversion">—</strong><small id="kpiConversionTrend">—</small></div></article>
+      <article class="kpi"><div class="kpi-icon green">✓</div><div><span>Vendas efetuadas</span><strong id="kpiSales">—</strong><small id="kpiTicket">—</small></div></article>
       <article class="kpi"><div class="kpi-icon orange">▤</div><div><span>Orçamentos em aberto</span><strong id="kpiQuotes">—</strong><small>Oportunidades pendentes</small></div></article>
       <article class="kpi"><div class="kpi-icon cyan">★</div><div><span>Líder de faturamento</span><strong id="kpiLeader">—</strong><small id="kpiLeaderValue">—</small></div></article>
+      <article class="kpi"><div class="kpi-icon pink">◎</div><div><span>Atingimento da meta</span><strong id="kpiTarget">—</strong><small id="kpiTargetText">—</small></div></article>
     </section>
 
-    <section class="chart-grid" id="graficos">
-      <article class="panel wide"><div class="panel-head"><div><h2>Evolução mensal</h2><p>Faturamento consolidado por mês</p></div></div><div class="chart-wrap"><canvas id="revenueChart"></canvas></div></article>
-      <article class="panel"><div class="panel-head"><div><h2>Conversão por vendedor</h2><p>Resultado ponderado no período</p></div></div><div class="chart-wrap"><canvas id="conversionChart"></canvas></div></article>
-      <article class="panel" id="ranking"><div class="panel-head"><div><h2>Ranking de faturamento</h2><p>Participação por vendedor</p></div></div><div class="chart-wrap"><canvas id="rankingChart"></canvas></div></article>
-      <article class="panel"><div class="panel-head"><div><h2>Orçamentos × vendas</h2><p>Volume comercial por vendedor</p></div></div><div class="chart-wrap"><canvas id="volumeChart"></canvas></div></article>
-      <article class="panel"><div class="panel-head"><div><h2>Funil comercial</h2><p>Composição das oportunidades</p></div></div><div id="funnel" class="funnel"></div></article>
+    <section class="chart-grid" id="performance">
+      <article class="panel span-2"><div class="panel-head"><div><h2>Evolução mensal</h2><p>Faturamento e conversão consolidada</p></div></div><div class="chart-wrap large"><canvas id="trendChart"></canvas></div></article>
+      <article class="panel"><div class="panel-head"><div><h2>Ranking de faturamento</h2><p>Participação por vendedor</p></div></div><div class="chart-wrap"><canvas id="rankingChart"></canvas></div></article>
+      <article class="panel"><div class="panel-head"><div><h2>Conversão por vendedor</h2><p>Eficiência ponderada</p></div></div><div class="chart-wrap"><canvas id="conversionChart"></canvas></div></article>
+      <article class="panel"><div class="panel-head"><div><h2>Volume comercial</h2><p>Orçamentos em aberto × vendas</p></div></div><div class="chart-wrap"><canvas id="volumeChart"></canvas></div></article>
+      <article class="panel"><div class="panel-head"><div><h2>Conversão × faturamento</h2><p>Posicionamento comercial da equipe</p></div></div><div class="chart-wrap"><canvas id="scatterChart"></canvas></div></article>
     </section>
 
-    <section class="insight-panel"><div><p class="eyebrow">INSIGHT GERENCIAL</p><h2 id="insightTitle">—</h2><p id="insightText">—</p></div><div class="score-ring"><strong id="scoreValue">—</strong><span>conversão</span></div></section>
-
-    <section class="panel table-panel" id="tabela"><div class="panel-head"><div><h2>Detalhamento por vendedor</h2><p>Indicadores consolidados conforme os filtros</p></div><button id="csvBtn" class="btn secondary">Exportar CSV</button></div>
-      <div class="table-scroll"><table><thead><tr><th>Vendedor</th><th>Mês</th><th>Orçamentos</th><th>Vendas</th><th>Conversão</th><th>Faturamento</th><th>Ticket médio</th></tr></thead><tbody id="dataBody"></tbody></table></div>
+    <section class="goal-grid" id="targets">
+      <article class="panel"><div class="panel-head"><div><h2>Meta por vendedor</h2><p>Realizado em relação à meta definida</p></div></div><div id="goalBars" class="goal-bars"></div></article>
+      <article class="panel"><div class="panel-head"><div><h2>Funil comercial</h2><p>Oportunidades, vendas e faturamento</p></div></div><div id="funnel" class="funnel"></div></article>
     </section>
-    <footer>Dashboard Comercial • Elétrica Lima • Dados atualizados a partir da planilha</footer>
+
+    <section class="insight-panel">
+      <div><p class="eyebrow">INSIGHT GERENCIAL</p><h2 id="insightTitle">—</h2><p id="insightText">—</p></div>
+      <div class="score-ring"><strong id="scoreValue">—</strong><span>conversão</span></div>
+    </section>
+
+    <section class="panel table-panel" id="details">
+      <div class="panel-head"><div><h2>Detalhamento por vendedor</h2><p>Indicadores conforme os filtros aplicados</p></div><button id="csvBtn" class="btn secondary">Exportar CSV</button></div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Vendedor</th><th>Mês</th><th>Orçamentos</th><th>Vendas</th><th>Conversão</th><th>Faturamento</th><th>Ticket médio</th><th>Meta</th></tr></thead>
+          <tbody id="dataBody"></tbody>
+        </table>
+      </div>
+    </section>
+    <footer>Dashboard Comercial 2.0 • Elétrica Lima</footer>
   </main>
 </div>
-<script src="js/data.js"></script><script src="js/app.js"></script>
-</body></html>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

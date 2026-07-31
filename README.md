@@ -1,45 +1,25 @@
-# Dashboard Comercial — Elétrica Lima
+# Dashboard Comercial 2.0 — Elétrica Lima
 
-Dashboard web responsivo para analisar **orçamentos em aberto, vendas, conversão e faturamento** por vendedor.
+Versão 2.0 do painel de acompanhamento comercial.
 
-## Como abrir
+## Novidades
 
-1. Extraia o arquivo ZIP mantendo a estrutura de pastas.
-2. Abra `index.html` no Google Chrome ou Microsoft Edge.
-3. É necessário acesso à internet na primeira abertura para carregar Chart.js e SheetJS.
+- comparação com o mês anterior;
+- meta mensal configurável;
+- atingimento de meta por vendedor;
+- gráfico combinado de faturamento e conversão;
+- gráfico de dispersão conversão × faturamento;
+- novos insights gerenciais;
+- exportação CSV ampliada;
+- visual responsivo com tema claro e escuro.
 
-## Atualizar com uma nova planilha
+## Como usar
 
-Clique em **Importar Excel** e selecione a planilha atualizada. O arquivo deve manter o mesmo padrão da planilha original:
+1. Abra `index.html` no Chrome ou Edge.
+2. Use os filtros de mês e vendedor.
+3. Ajuste a meta mensal no campo **Meta mensal**.
+4. Para atualizar os dados, clique em **Importar Excel**.
 
-- uma linha com o mês e os nomes dos vendedores;
-- linha de `ORÇAMENTOS`;
-- linha de `VENDAS`;
-- linha de `TX CONVERSAO`;
-- linha de `TOTAL VENDAS`.
+## Publicar no GitHub Pages
 
-O navegador lê a planilha localmente; nenhum dado é enviado para servidores externos.
-
-## Funcionalidades
-
-- filtros por mês e vendedor;
-- KPIs de faturamento, conversão, vendas, orçamentos, ticket médio e líder;
-- gráficos de evolução, ranking, conversão e volume;
-- funil comercial;
-- insight gerencial automático;
-- tabela detalhada e exportação CSV;
-- modo escuro e impressão/PDF.
-
-## Estrutura
-
-```
-index.html
-css/style.css
-js/data.js
-js/app.js
-dados/vendas.xlsx
-```
-
-## Publicação gratuita
-
-O projeto pode ser publicado pelo GitHub Pages em **Settings → Pages → Deploy from a branch → main / root**.
+No repositório, acesse **Settings → Pages → Deploy from a branch → main → / (root)**.
